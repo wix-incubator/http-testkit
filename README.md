@@ -1,4 +1,5 @@
 # http-testkit
+[![Build Status](https://travis-ci.org/wix/http-testkit.svg?branch=master)](https://travis-ci.org/wix/http-testkit)
 
 A collection of tools we use at Wix to test our web services – both as clients and servers. We hope to release more tools in the future.
 
