@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.wix.hoopoe.http</groupId>
     <artifactId>http-testkit_2.11</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <name>HTTP Testkit</name>
     <description>Tools for testing HTTP services</description>
     <url>https://github.com/wix/http-testkit</url>
@@ -34,7 +33,7 @@
         <url>https://github.com/wix/http-testkit</url>
         <connection>scm:git:git://github.com/wix/http-testkit.git</connection>
         <developerConnection>scm:git:git@github.com:wix/http-testkit.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>http-testkit_2.11-0.0.1</tag>
     </scm>
 
     <properties>
