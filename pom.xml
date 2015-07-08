@@ -4,7 +4,7 @@
 
     <groupId>com.wix.hoopoe.http</groupId>
     <artifactId>http-testkit_2.11</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>HTTP Testkit</name>
     <description>Tools for testing HTTP services</description>
     <url>https://github.com/wix/http-testkit</url>
@@ -33,7 +33,7 @@
         <url>https://github.com/wix/http-testkit</url>
         <connection>scm:git:git://github.com/wix/http-testkit.git</connection>
         <developerConnection>scm:git:git@github.com:wix/http-testkit.git</developerConnection>
-        <tag>http-testkit_2.11-0.0.1</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
