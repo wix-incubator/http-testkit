@@ -30,6 +30,11 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       get("/some") must beNotFound
     }
 
+    "record HEAD request with correct method" in new ctx {
+      head("/some")
+      probe.requests must contain(httpRequestFor("/some", HttpMethods.HEAD))
+    }
+
     "answer with 200 by default" in new ctx {
       get("/some") must beSuccessful
     }
@@ -68,9 +73,15 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       Await.result(pipeline(request), 5.seconds)
     }
 
+    def head(path: String) = {
+      val request: HttpRequest = Head(s"http://localhost:${probe.actualPort}$path")
+      Await.result(pipeline(request), 5.seconds)
+    }
+
   }
 
-  def httpRequestFor(path: String): Matcher[HttpRequest] = { (_: HttpRequest).uri.path } ^^ ===(Path(path))
+  def httpRequestFor(path: String, method: HttpMethod = HttpMethods.GET): Matcher[HttpRequest] =
+    { (_: HttpRequest).uri.path } ^^ ===(Path(path)) and  { (_: HttpRequest).method } ^^ ===(method)
 
   private def haveStatus(status: StatusCode) = be_===(status) ^^ ((_: HttpResponse).status aka "status")
   def beSuccessful = haveStatus(StatusCodes.OK)

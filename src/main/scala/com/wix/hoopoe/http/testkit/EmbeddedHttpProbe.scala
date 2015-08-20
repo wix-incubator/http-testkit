@@ -5,6 +5,7 @@ import akka.actor._
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.config.{ConfigValueFactory, ConfigFactory}
 import spray.can.Http
 import spray.http._
 
@@ -16,7 +17,13 @@ import EmbeddedHttpProbe._
 
 class EmbeddedHttpProbe(port: Int=0, defaultHandler: Handler=OKHandler) { probe =>
 
-  protected implicit val system = ActorSystem(s"EmbeddedHttpProbe")
+  // By default, spray-can handles HEAD-requests transparently by dispatching a GET-request
+  // to the handler and stripping of the result body.
+  // http://spray.io/documentation/1.2.2/spray-routing/method-directives/head/#head
+  private val disableTransparentHeadHandling = ConfigFactory.empty()
+    .withValue("spray.can.server.transparent-head-requests", ConfigValueFactory.fromAnyRef("off"))
+  protected implicit val system = ActorSystem(s"EmbeddedHttpProbe", disableTransparentHeadHandling)
+
   protected implicit val askTimeout = Timeout(5.seconds)
 
   val requests = new ArrayBuffer[HttpRequest] with mutable.SynchronizedBuffer[HttpRequest]
