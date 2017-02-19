@@ -14,6 +14,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class EmbeddedHttpProbe(port: Int = 0, defaultHandler: Handler = OKHandler) { probe =>
 
@@ -27,7 +28,7 @@ class EmbeddedHttpProbe(port: Int = 0, defaultHandler: Handler = OKHandler) { pr
   val handlers = new ArrayBuffer[Handler] with mutable.SynchronizedBuffer[Handler]
 
   def addListener(listener: Listener): Unit = handlers += {
-    case HttpRequest(method, uri, headers, ) if r.method == listener.request.method => listener.response
+    case httpRequest: HttpRequest if listener.request.matches(httpRequest) => listener.response
   }
 
   // Builder for HttpRequest with matchers
@@ -117,16 +118,16 @@ trait EmbeddedHttpProbeConstants {
 
 object EmbeddedHttpProbe extends EmbeddedHttpProbeConstants
 
-case class RequestBuilder(request: HttpRequest = HttpRequest(null, null, null, null, null)) {
+case class RequestBuilder(requestMatcher: HttpRequestMatcher = HttpRequestMatcher()) {
 
 
   def post(uri: Uri) = ??? //httpRequest.copy(method = HttpMethods.POST, uri = uri)
 
-  def get(uri: Path): RequestBuilder = copy(request = request.copy(method = HttpMethods.GET, uri = uri.toString()))
+  def get(uri: Path): RequestBuilder = copy(requestMatcher = requestMatcher.copy(method = Some(HttpMethods.GET), uri = Some(uri.toString())))
 
   def withHeader(httpHeader: HttpHeader) = ??? //httpRequest.copy(headers = httpRequest.headers ++ Seq(httpHeader))
 
-  def build: HttpRequest = request
+  def build: HttpRequestMatcher = requestMatcher
 
 
 }
@@ -135,13 +136,28 @@ case class ResponseBuilder(response: HttpResponse = HttpResponse()) {
   def withStatus(status: StatusCode): ResponseBuilder = copy(response = response.copy(status = status))
 
   def build: HttpResponse = response
-}
+}                                                   
 
-case class Listener(request: HttpRequest = HttpRequest(), response: HttpResponse = HttpResponse()) {
+case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(), response: HttpResponse = HttpResponse()) {
 
-  def given(request: HttpRequest): Listener = copy(request = request)
+  def given(request: HttpRequestMatcher): Listener = copy(request = request)
 
   def thenRespondWith(response: HttpResponse): Listener = copy(response = response)
 
+}
+
+case class HttpRequestMatcher(method: Option[HttpMethod] = None,
+                              uri: Option[Uri] = None,
+                              headers: Option[Seq[HttpHeader]] = None,
+                              entity: Option[HttpEntity] = None,
+                              protocol: Option[HttpProtocol] = None) {
+
+  def matches(request: HttpRequest): Boolean = {
+    method.forall(_ == request.method) &&
+    uri.forall(_ == request.uri) &&
+    headers.forall(_.forall(request.headers contains)) &&
+    entity.forall(_ == request.entity) &&
+    protocol.forall(_ == request.protocol)
+  }
 }
 

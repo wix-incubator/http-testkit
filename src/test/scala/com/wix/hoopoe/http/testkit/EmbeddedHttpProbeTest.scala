@@ -47,7 +47,7 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
   }
 
   "probe using builder api" should {
-    "answer with provided handler" in new ctx {
+    "answer with registered listener" in new ctx {
       val request = RequestBuilder().get(Uri.Path("/some")).build
       val response = ResponseBuilder().withStatus(StatusCodes.NotFound).build
       val listener = Listener().given(request).thenRespondWith(response)
@@ -56,6 +56,12 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
 
       get("/some") must beNotFound
     }
+
+    "answer with multiple registered listeners" in new ctx {
+      //TODO: implement this
+    }
+
+
   }
 
   trait ctx extends Scope with BeforeAfter {
