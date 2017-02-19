@@ -5,22 +5,35 @@ import akka.actor._
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import com.wix.hoopoe.http.testkit.EmbeddedHttpProbe._
 import spray.can.Http
+import spray.http.Uri.Path
 import spray.http._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent._
 import scala.concurrent.duration._
-import EmbeddedHttpProbe._
 
-class EmbeddedHttpProbe(port: Int=0, defaultHandler: Handler=OKHandler) { probe =>
+class EmbeddedHttpProbe(port: Int = 0, defaultHandler: Handler = OKHandler) { probe =>
+
 
   protected implicit val system = ActorSystem(s"EmbeddedHttpProbe")
   protected implicit val askTimeout = Timeout(5.seconds)
 
   val requests = new ArrayBuffer[HttpRequest] with mutable.SynchronizedBuffer[HttpRequest]
+
+  @deprecated()
   val handlers = new ArrayBuffer[Handler] with mutable.SynchronizedBuffer[Handler]
+
+  def addListener(listener: Listener): Unit = handlers += {
+    case HttpRequest(method, uri, headers, ) if r.method == listener.request.method => listener.response
+  }
+
+  // Builder for HttpRequest with matchers
+  // Builder for HttpResponse with matchers
+  // make handlers private
+  // encapsulate PartialFunction creation
 
   var actualPort: Int = _
 
@@ -103,4 +116,32 @@ trait EmbeddedHttpProbeConstants {
 }
 
 object EmbeddedHttpProbe extends EmbeddedHttpProbeConstants
+
+case class RequestBuilder(request: HttpRequest = HttpRequest(null, null, null, null, null)) {
+
+
+  def post(uri: Uri) = ??? //httpRequest.copy(method = HttpMethods.POST, uri = uri)
+
+  def get(uri: Path): RequestBuilder = copy(request = request.copy(method = HttpMethods.GET, uri = uri.toString()))
+
+  def withHeader(httpHeader: HttpHeader) = ??? //httpRequest.copy(headers = httpRequest.headers ++ Seq(httpHeader))
+
+  def build: HttpRequest = request
+
+
+}
+
+case class ResponseBuilder(response: HttpResponse = HttpResponse()) {
+  def withStatus(status: StatusCode): ResponseBuilder = copy(response = response.copy(status = status))
+
+  def build: HttpResponse = response
+}
+
+case class Listener(request: HttpRequest = HttpRequest(), response: HttpResponse = HttpResponse()) {
+
+  def given(request: HttpRequest): Listener = copy(request = request)
+
+  def thenRespondWith(response: HttpResponse): Listener = copy(response = response)
+
+}
 

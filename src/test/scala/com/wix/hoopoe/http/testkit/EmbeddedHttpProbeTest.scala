@@ -46,6 +46,18 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
 
   }
 
+  "probe using builder api" should {
+    "answer with provided handler" in new ctx {
+      val request = RequestBuilder().get(Uri.Path("/some")).build
+      val response = ResponseBuilder().withStatus(StatusCodes.NotFound).build
+      val listener = Listener().given(request).thenRespondWith(response)
+
+      probe.addListener(listener)
+
+      get("/some") must beNotFound
+    }
+  }
+
   trait ctx extends Scope with BeforeAfter {
     lazy val probe = new EmbeddedHttpProbe
 
