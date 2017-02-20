@@ -125,7 +125,9 @@ case class RequestBuilder(requestMatcher: HttpRequestMatcher = HttpRequestMatche
 
   def get(uri: Path): RequestBuilder = copy(requestMatcher = requestMatcher.copy(method = Some(HttpMethods.GET), uri = Some(uri.toString())))
 
-  def withHeader(httpHeader: HttpHeader) = ??? //httpRequest.copy(headers = httpRequest.headers ++ Seq(httpHeader))
+  def withHeader(httpHeader: HttpHeader): RequestBuilder = copy(requestMatcher = requestMatcher.copy(headers = Some(requestMatcher.headers.getOrElse(Seq()) ++ Seq(httpHeader))))
+
+  def withEntity(entity: HttpEntity): RequestBuilder = copy(requestMatcher = requestMatcher.copy(entity = Some(entity)))
 
   def build: HttpRequestMatcher = requestMatcher
 
@@ -149,15 +151,13 @@ case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(), response
 case class HttpRequestMatcher(method: Option[HttpMethod] = None,
                               uri: Option[Uri] = None,
                               headers: Option[Seq[HttpHeader]] = None,
-                              entity: Option[HttpEntity] = None,
-                              protocol: Option[HttpProtocol] = None) {
+                              entity: Option[HttpEntity] = None) {
 
   def matches(request: HttpRequest): Boolean = {
     method.forall(_ == request.method) &&
-    uri.forall(_ == request.uri) &&
+    uri.forall(_.path == request.uri.path) &&
     headers.forall(_.forall(request.headers contains)) &&
-    entity.forall(_ == request.entity) &&
-    protocol.forall(_ == request.protocol)
+    entity.forall(_ == request.entity)
   }
 }
 
