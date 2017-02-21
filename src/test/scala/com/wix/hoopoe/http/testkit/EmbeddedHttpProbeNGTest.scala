@@ -1,11 +1,9 @@
 package com.wix.hoopoe.http.testkit
 
 import akka.actor.ActorSystem
-import org.specs2.matcher.Matcher
 import org.specs2.mutable.{BeforeAfter, SpecificationWithJUnit}
 import org.specs2.specification.Scope
 import spray.client.pipelining.{Get, Post, sendReceive}
-import spray.http.Uri.Path
 import spray.http._
 
 import scala.concurrent.duration._
@@ -15,23 +13,20 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
   "probe using builder api" should {
     "answer with registered path listener" in new ctx {
-      val request = RequestBuilder().get(Uri.Path("/some")).build
-      val response = notFoundResponse
-      val listener = Listener().given(request).thenRespondWith(response)
-
-      probe.addListener(listener)
+      val request = HttpRequestMatcher(HttpMethods.GET).withUri(Uri.Path("/some"))
+      addListener(given = request, thenRespond = notFoundResponse)
 
       get("/some") must beNotFound
       get("/some1") must beSuccessful
     }
 
     "answer with multiple registered listeners" in new ctx {
-      val request1 = RequestBuilder().get(Uri.Path("/some1")).build
+      val request1 = HttpRequestMatcher(HttpMethods.GET).withUri(Uri.Path("/some1"))
       val response1 = notFoundResponse
-      val request2 = RequestBuilder().get(Uri.Path("/some2")).build
+      val request2 = HttpRequestMatcher(HttpMethods.GET).withUri(Uri.Path("/some2"))
       val response2 = ResponseBuilder().withStatus(StatusCodes.BadGateway).build
-      probe.addListener(Listener().given(request1).thenRespondWith(response1))
-      probe.addListener(Listener().given(request2).thenRespondWith(response2))
+      addListener(given = request1, thenRespond = response1)
+      addListener(given = request2, thenRespond = response2)
 
       get("/some1") must beNotFound
       get("/some2") must haveStatus(StatusCodes.BadGateway)
@@ -40,27 +35,19 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
     "answer with header listener" in new ctx {
       val header = HttpHeaders.`Accept-Encoding`(Seq(HttpEncodingRange.*))
-      val request = RequestBuilder().get(Uri.Path("/some")).withHeader(header).build
+      //val request = RequestBuilder().get(Uri.Path("/some")).withHeader(header).build
+      val request = HttpRequestMatcher(HttpMethods.GET).withUri(Uri.Path("/some")).withHeader(header)
+      addListener(given = request, thenRespond = notFoundResponse)
 
-      val listener = Listener().given(request).thenRespondWith(notFoundResponse)
-
-      probe.addListener(listener)
-
-      get("/some", Some(header)) must beNotFound
-      get("/some", Some(HttpHeaders.`Content-Type`(ContentTypes.`text/plain`))) must beSuccessful
-      get("/some", None) must beSuccessful
+      get("/some", header = Some(header)) must beNotFound
+      get("/some", header = Some(HttpHeaders.`Content-Type`(ContentTypes.`text/plain`))) must beSuccessful
+      get("/some", header = None) must beSuccessful
     }
 
     "answer with entity listener" in new ctx {
       val entity = HttpEntity("my beautiful http entity")
-      val request = RequestBuilder()
-      .get(Uri.Path("/some"))
-      .withEntity(entity)
-      .build
-
-      val listener = Listener().given(request).thenRespondWith(notFoundResponse)
-
-      probe.addListener(listener)
+      val request = HttpRequestMatcher(HttpMethods.GET).withUri(Uri.Path("/some")).withEntity(entity)
+      addListener(given = request, thenRespond = notFoundResponse)
 
       get("/some", entity = Some(entity)) must beNotFound
       get("/some", entity = Some(HttpEntity("yada yada yada"))) must beSuccessful
@@ -69,14 +56,8 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
     "answer with protocol listener" in new ctx {
       val protocol = HttpProtocols.`HTTP/1.0`
-      val request = RequestBuilder()
-      .get(Uri.Path("/some"))
-      .withProtocol(protocol)
-      .build
-
-      val listener = Listener().given(request).thenRespondWith(notFoundResponse)
-
-      probe.addListener(listener)
+      val request = HttpRequestMatcher(HttpMethods.GET).withUri(Uri.Path("/some")).withProtocol(protocol)
+      addListener(given = request, thenRespond = notFoundResponse)
 
       get("/some", protocol = Some(protocol)) must beNotFound
       get("/some", protocol = Some(HttpProtocols.`HTTP/1.1`)) must beSuccessful
@@ -84,26 +65,23 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     }
 
     "support get with URI" in new ctx {
-      val request = RequestBuilder().get(Uri("/some")).build
-      val listener = Listener().given(request).thenRespondWith(notFoundResponse)
+      val request = HttpRequestMatcher(HttpMethods.GET).withUri(Uri("/some"))
+      addListener(given = request, thenRespond = notFoundResponse)
 
-      probe.addListener(listener)
       get("/some") must beNotFound
     }
 
     "support post" in new ctx {
-      val request = RequestBuilder().post(Uri.Path("/some")).build
-      val listener = Listener().given(request).thenRespondWith(notFoundResponse)
+      val request = HttpRequestMatcher(HttpMethods.POST).withUri(Uri.Path("/some"))
+      addListener(given = request, thenRespond = notFoundResponse)
 
-      probe.addListener(listener)
       post("/some") must beNotFound
     }
 
     "support post with URI" in new ctx {
-      val request = RequestBuilder().post(Uri("/some")).build
-      val listener = Listener().given(request).thenRespondWith(notFoundResponse)
+      val request = HttpRequestMatcher(HttpMethods.POST).withUri(Uri("/some"))
+      addListener(given = request, thenRespond = notFoundResponse)
 
-      probe.addListener(listener)
       post("/some") must beNotFound
     }
 
@@ -111,7 +89,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
   }
 
   trait ctx extends Scope with BeforeAfter {
-    import EmbeddedHttpProbeTest._
+    import EmbeddedHttpProbeNGTest._
     lazy val probe = new EmbeddedHttpProbe
 
     override def before: Unit = {
@@ -148,15 +126,16 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
       Await.result(pipeline(request), 5.seconds)
     }
 
+    def addListener(given: HttpRequestMatcher, thenRespond: HttpResponse) =
+      probe.addListener(Listener().given(given).thenRespondWith(thenRespond))
+
     val notFoundResponse = ResponseBuilder()
     .withStatus(StatusCodes.NotFound)
     .build
 
   }
 
-  def httpRequestFor(path: String): Matcher[HttpRequest] = { (_: HttpRequest).uri.path } ^^ ===(Path(path))
-
-  private def haveStatus(status: StatusCode) = be_===(status) ^^ ((_: HttpResponse).status aka "status")
+  def haveStatus(status: StatusCode) = be_===(status) ^^ ((_: HttpResponse).status aka "status")
   def beSuccessful = haveStatus(StatusCodes.OK)
   def beNotFound = haveStatus(StatusCodes.NotFound)
 

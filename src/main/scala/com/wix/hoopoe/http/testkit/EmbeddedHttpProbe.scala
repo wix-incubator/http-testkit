@@ -118,6 +118,7 @@ trait EmbeddedHttpProbeConstants {
 
 object EmbeddedHttpProbe extends EmbeddedHttpProbeConstants
 
+/*
 case class RequestBuilder(requestMatcher: HttpRequestMatcher = HttpRequestMatcher()) {
 
 
@@ -142,6 +143,7 @@ case class RequestBuilder(requestMatcher: HttpRequestMatcher = HttpRequestMatche
 
 
 }
+*/
 
 case class ResponseBuilder(response: HttpResponse = HttpResponse()) {
   def withStatus(status: StatusCode): ResponseBuilder = copy(response = response.copy(status = status))
@@ -149,7 +151,7 @@ case class ResponseBuilder(response: HttpResponse = HttpResponse()) {
   def build: HttpResponse = response
 }                                                   
 
-case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(), response: HttpResponse = HttpResponse()) {
+case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(HttpMethods.GET), response: HttpResponse = HttpResponse()) {
 
   def given(request: HttpRequestMatcher): Listener = copy(request = request)
 
@@ -157,18 +159,30 @@ case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(), response
 
 }
 
-case class HttpRequestMatcher(method: Option[HttpMethod] = None,
+case class HttpRequestMatcher(method: HttpMethod,
                               uri: Option[Uri] = None,
                               headers: Option[Seq[HttpHeader]] = None,
                               entity: Option[HttpEntity] = None,
                               protocol: Option[HttpProtocol] = None) {
 
   def matches(request: HttpRequest): Boolean = {
-    method.forall(_ == request.method) &&
+    method == request.method &&
     uri.forall(_.path == request.uri.path) &&
     headers.forall(_.forall(request.headers contains)) &&
     entity.forall(_ == request.entity) &&
     protocol.forall(_ == request.protocol)
   }
+
+  def withHeader(httpHeader: HttpHeader): HttpRequestMatcher = copy(headers = Some(headers.getOrElse(Seq()) ++ Seq(httpHeader)))
+
+  def withEntity(entity: HttpEntity): HttpRequestMatcher = copy(entity = Some(entity))
+
+  def withProtocol(protocol: HttpProtocol): HttpRequestMatcher = copy(protocol = Some(protocol))
+
+  def withUri(uri: Uri) = copy(uri = Some(uri.path.toString()))
+
+  def withUri(uri: Path) = copy(uri = Some(uri.toString()))
+
+
 }
 
