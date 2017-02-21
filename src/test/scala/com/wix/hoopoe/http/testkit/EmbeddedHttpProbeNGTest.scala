@@ -25,7 +25,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
       val request1 = HttpRequestMatcher(HttpMethods.GET).withUri(havePath(Uri.Path("/some1")))
       val response1 = notFoundResponse
       val request2 = HttpRequestMatcher(HttpMethods.GET).withUri(havePath(Uri.Path("/some2")))
-      val response2 = ResponseBuilder().withStatus(StatusCodes.BadGateway).build
+      val response2 = HttpResponse(status = StatusCodes.BadGateway)
       addListener(given = request1, thenRespond = response1)
       addListener(given = request2, thenRespond = response2)
 
@@ -133,9 +133,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     def addListener(given: HttpRequestMatcher, thenRespond: HttpResponse) =
       probe.addListener(Listener().given(given).thenRespondWith(thenRespond))
 
-    val notFoundResponse = ResponseBuilder()
-    .withStatus(StatusCodes.NotFound)
-    .build
+    val notFoundResponse = HttpResponse(status = StatusCodes.NotFound)
 
 
 

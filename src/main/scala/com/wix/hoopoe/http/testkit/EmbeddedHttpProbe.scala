@@ -118,39 +118,6 @@ trait EmbeddedHttpProbeConstants {
 
 object EmbeddedHttpProbe extends EmbeddedHttpProbeConstants
 
-/*
-case class RequestBuilder(requestMatcher: HttpRequestMatcher = HttpRequestMatcher()) {
-
-
-  def post(uri: Path): RequestBuilder = requestFor(HttpMethods.POST, uri)
-
-  def post(uri: Uri): RequestBuilder = post(uri.path)
-
-  def get(uri: Path): RequestBuilder = requestFor(HttpMethods.GET, uri)
-
-  def get(uri: Uri): RequestBuilder = get(uri.path)
-
-  def withHeader(httpHeader: HttpHeader): RequestBuilder = copy(requestMatcher = requestMatcher.copy(headers = Some(requestMatcher.headers.getOrElse(Seq()) ++ Seq(httpHeader))))
-
-  def withEntity(entity: HttpEntity): RequestBuilder = copy(requestMatcher = requestMatcher.copy(entity = Some(entity)))
-
-  def withProtocol(protocol: HttpProtocol): RequestBuilder = copy(requestMatcher = requestMatcher.copy(protocol = Some(protocol)))
-
-  def build: HttpRequestMatcher = requestMatcher
-
-  private def requestFor(method: HttpMethod, uri: Path) =
-    copy(requestMatcher = requestMatcher.copy(method = Some(method), uri = Some(uri.toString())))
-
-
-}
-*/
-
-case class ResponseBuilder(response: HttpResponse = HttpResponse()) {
-  def withStatus(status: StatusCode): ResponseBuilder = copy(response = response.copy(status = status))
-
-  def build: HttpResponse = response
-}                                                   
-
 case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(HttpMethods.GET), response: HttpResponse = HttpResponse()) {
 
   def given(request: HttpRequestMatcher): Listener = copy(request = request)
