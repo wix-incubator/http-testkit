@@ -160,29 +160,55 @@ case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(HttpMethods
 }
 
 case class HttpRequestMatcher(method: HttpMethod,
-                              uri: Option[Uri] = None,
+                              uri: Option[UriMatcher] = None,
                               headers: Option[Seq[HttpHeader]] = None,
-                              entity: Option[HttpEntity] = None,
+                              entity: Option[HttpEntityMatcher] = None,
                               protocol: Option[HttpProtocol] = None) {
 
   def matches(request: HttpRequest): Boolean = {
     method == request.method &&
-    uri.forall(_.path == request.uri.path) &&
+    uri.forall(_.matches(request.uri)) &&
     headers.forall(_.forall(request.headers contains)) &&
-    entity.forall(_ == request.entity) &&
+    entity.forall(_.matches(request.entity)) &&
     protocol.forall(_ == request.protocol)
   }
 
   def withHeader(httpHeader: HttpHeader): HttpRequestMatcher = copy(headers = Some(headers.getOrElse(Seq()) ++ Seq(httpHeader)))
 
-  def withEntity(entity: HttpEntity): HttpRequestMatcher = copy(entity = Some(entity))
+  def withEntity(entity: HttpEntityMatcher): HttpRequestMatcher = copy(entity = Some(entity))
 
   def withProtocol(protocol: HttpProtocol): HttpRequestMatcher = copy(protocol = Some(protocol))
 
-  def withUri(uri: Uri) = copy(uri = Some(uri.path.toString()))
+  def withUri(uri: UriMatcher) = copy(uri = Some(uri))
 
-  def withUri(uri: Path) = copy(uri = Some(uri.toString()))
+}
 
+trait HttpEntityMatcher {
+  def matches(entity: HttpEntity): Boolean
+}
 
+object HttpEntityMatcher {
+  def beEqualTo(expectedEntity: HttpEntity): HttpEntityMatcher =
+    EqualsHttpEntityMatcher(expectedEntity)
+
+  case class EqualsHttpEntityMatcher private[HttpEntityMatcher](expectedEntity: HttpEntity) extends HttpEntityMatcher {
+    override def matches(entity: HttpEntity): Boolean = {
+      expectedEntity == entity
+    }
+  }
+}
+
+trait UriMatcher {
+  def matches(uri: Uri): Boolean
+}
+
+object UriMatcher {
+  def havePath(uri: Uri): UriMatcher = UriPathEqualityHttpEntityMatcher(uri.path)
+  def havePath(path: Path): UriMatcher = UriPathEqualityHttpEntityMatcher(path)
+
+  case class UriPathEqualityHttpEntityMatcher private[UriMatcher](expectedPath: Path) extends UriMatcher {
+    override def matches(uri: Uri): Boolean =
+      uri.path == expectedPath
+  }
 }
 

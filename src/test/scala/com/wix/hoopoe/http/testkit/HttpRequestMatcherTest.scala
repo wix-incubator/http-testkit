@@ -16,7 +16,7 @@ class HttpRequestMatcherTest extends SpecificationWithJUnit {
 
     "match on HttpRequest uri" in new ctx {
       val request = aGetHttpRequest.copy(uri = Uri.Path("/my-path").toString)
-      aGetHttpRequestMatcher.copy(uri = Some(Uri.Path("/some-other-path").toString)).matches(request) must beFalse
+      aGetHttpRequestMatcher.copy(uri = Some(UriMatcher.havePath(Uri.Path("/some-other-path")))).matches(request) must beFalse
     }
 
     "match on HttpRequest one header" in new ctx {
@@ -32,7 +32,8 @@ class HttpRequestMatcherTest extends SpecificationWithJUnit {
 
     "match on HttpRequest httpEntity" in new ctx {
       val request = aPostHttpRequest.copy(entity = HttpEntity("some entity"))
-      aGetHttpRequestMatcher.copy(entity = Some(HttpEntity("another entity"))).matches(request) must beFalse
+      val entityMatcher = HttpEntityMatcher.beEqualTo(HttpEntity("another entity"))
+      aGetHttpRequestMatcher.copy(entity = Some(entityMatcher)).matches(request) must beFalse
     }
 
     "match on HttpRequest protocol" in new ctx {
