@@ -121,15 +121,24 @@ object EmbeddedHttpProbe extends EmbeddedHttpProbeConstants
 case class RequestBuilder(requestMatcher: HttpRequestMatcher = HttpRequestMatcher()) {
 
 
-  def post(uri: Uri) = ??? //httpRequest.copy(method = HttpMethods.POST, uri = uri)
+  def post(uri: Path): RequestBuilder = requestFor(HttpMethods.POST, uri)
 
-  def get(uri: Path): RequestBuilder = copy(requestMatcher = requestMatcher.copy(method = Some(HttpMethods.GET), uri = Some(uri.toString())))
+  def post(uri: Uri): RequestBuilder = post(uri.path)
+
+  def get(uri: Path): RequestBuilder = requestFor(HttpMethods.GET, uri)
+
+  def get(uri: Uri): RequestBuilder = get(uri.path)
 
   def withHeader(httpHeader: HttpHeader): RequestBuilder = copy(requestMatcher = requestMatcher.copy(headers = Some(requestMatcher.headers.getOrElse(Seq()) ++ Seq(httpHeader))))
 
   def withEntity(entity: HttpEntity): RequestBuilder = copy(requestMatcher = requestMatcher.copy(entity = Some(entity)))
 
+  def withProtocol(protocol: HttpProtocol): RequestBuilder = copy(requestMatcher = requestMatcher.copy(protocol = Some(protocol)))
+
   def build: HttpRequestMatcher = requestMatcher
+
+  private def requestFor(method: HttpMethod, uri: Path) =
+    copy(requestMatcher = requestMatcher.copy(method = Some(method), uri = Some(uri.toString())))
 
 
 }
@@ -151,13 +160,15 @@ case class Listener(request: HttpRequestMatcher = HttpRequestMatcher(), response
 case class HttpRequestMatcher(method: Option[HttpMethod] = None,
                               uri: Option[Uri] = None,
                               headers: Option[Seq[HttpHeader]] = None,
-                              entity: Option[HttpEntity] = None) {
+                              entity: Option[HttpEntity] = None,
+                              protocol: Option[HttpProtocol] = None) {
 
   def matches(request: HttpRequest): Boolean = {
     method.forall(_ == request.method) &&
     uri.forall(_.path == request.uri.path) &&
     headers.forall(_.forall(request.headers contains)) &&
-    entity.forall(_ == request.entity)
+    entity.forall(_ == request.entity) &&
+    protocol.forall(_ == request.protocol)
   }
 }
 

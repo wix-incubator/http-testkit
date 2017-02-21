@@ -4,50 +4,17 @@ import akka.actor.ActorSystem
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.{BeforeAfter, SpecificationWithJUnit}
 import org.specs2.specification.Scope
-import spray.can.Http.ConnectionException
-import spray.client.pipelining._
-import spray.http.Uri._
+import spray.client.pipelining.{Get, Post, sendReceive}
+import spray.http.Uri.Path
 import spray.http._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-
-class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
-
-  "probe" should {
-
-    "record incoming requests" in new ctx {
-      get("/some")
-      probe.requests must contain(httpRequestFor("/some"))
-    }
-
-    "answer with provided handler" in new ctx {
-      probe.handlers += {
-        case HttpRequest(HttpMethods.GET, Uri.Path("/some"), _, _, _) => HttpResponse(status = StatusCodes.NotFound)
-      }
-
-      get("/some") must beNotFound
-    }
-
-    "answer with 200 by default" in new ctx {
-      get("/some") must beSuccessful
-    }
-
-    "allow setting a default answer" in new ctx {
-      override lazy val probe: EmbeddedHttpProbe = new EmbeddedHttpProbe(defaultHandler = EmbeddedHttpProbe.NotFoundHandler)
-      get("/some") must beNotFound
-    }
-
-    "do not accept connections after shutdown" in new ctx {
-      probe.doStop()
-      get("/some") must throwA[ConnectionException]
-    }
-
-  }
+class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
   "probe using builder api" should {
-    "answer with registered path listener" in new builderApiCtx {
+    "answer with registered path listener" in new ctx {
       val request = RequestBuilder().get(Uri.Path("/some")).build
       val response = notFoundResponse
       val listener = Listener().given(request).thenRespondWith(response)
@@ -58,7 +25,7 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       get("/some1") must beSuccessful
     }
 
-    "answer with multiple registered listeners" in new builderApiCtx {
+    "answer with multiple registered listeners" in new ctx {
       val request1 = RequestBuilder().get(Uri.Path("/some1")).build
       val response1 = notFoundResponse
       val request2 = RequestBuilder().get(Uri.Path("/some2")).build
@@ -71,7 +38,7 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       get("/some3") must beSuccessful
     }
 
-    "answer with header listener" in new builderApiCtx {
+    "answer with header listener" in new ctx {
       val header = HttpHeaders.`Accept-Encoding`(Seq(HttpEncodingRange.*))
       val request = RequestBuilder().get(Uri.Path("/some")).withHeader(header).build
 
@@ -84,12 +51,12 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       get("/some", None) must beSuccessful
     }
 
-    "answer with entity listener" in new builderApiCtx {
+    "answer with entity listener" in new ctx {
       val entity = HttpEntity("my beautiful http entity")
       val request = RequestBuilder()
-        .get(Uri.Path("/some"))
-        .withEntity(entity)
-        .build
+      .get(Uri.Path("/some"))
+      .withEntity(entity)
+      .build
 
       val listener = Listener().given(request).thenRespondWith(notFoundResponse)
 
@@ -100,12 +67,12 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       get("/some", entity = None) must beSuccessful
     }
 
-    "answer with protocol listener" in new builderApiCtx {
+    "answer with protocol listener" in new ctx {
       val protocol = HttpProtocols.`HTTP/1.0`
       val request = RequestBuilder()
-        .get(Uri.Path("/some"))
-        .withProtocol(protocol)
-        .build
+      .get(Uri.Path("/some"))
+      .withProtocol(protocol)
+      .build
 
       val listener = Listener().given(request).thenRespondWith(notFoundResponse)
 
@@ -116,7 +83,7 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       get("/some", protocol = None) must beSuccessful
     }
 
-    "support get with URI" in new builderApiCtx {
+    "support get with URI" in new ctx {
       val request = RequestBuilder().get(Uri("/some")).build
       val listener = Listener().given(request).thenRespondWith(notFoundResponse)
 
@@ -124,7 +91,7 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       get("/some") must beNotFound
     }
 
-    "support post" in new builderApiCtx {
+    "support post" in new ctx {
       val request = RequestBuilder().post(Uri.Path("/some")).build
       val listener = Listener().given(request).thenRespondWith(notFoundResponse)
 
@@ -132,7 +99,7 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       post("/some") must beNotFound
     }
 
-    "support post with URI" in new builderApiCtx {
+    "support post with URI" in new ctx {
       val request = RequestBuilder().post(Uri("/some")).build
       val listener = Listener().given(request).thenRespondWith(notFoundResponse)
 
@@ -166,20 +133,9 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
             entity: Option[HttpEntity] = None,
             protocol: Option[HttpProtocol] = None) = {
 
-      def f: HttpRequest => HttpRequest = (httpRequest: HttpRequest) => {
-
-        val withProtocol: HttpRequest => HttpRequest = ???
-
-        withProtocol(httpRequest
-          .withEntity(entity.getOrElse(httpRequest.entity))
-          .withHeaders(header.fold(httpRequest.headers) { _ => header.toList }))
-      }
-
-
-
       val request: HttpRequest =
         Get(s"http://localhost:${probe.actualPort}$path")
-          .withEntity(entity)
+        .withEntity(entity)
         .withProtocol(protocol)
         .withHeaders(header)
 
@@ -192,14 +148,10 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
       Await.result(pipeline(request), 5.seconds)
     }
 
-
-
-  }
-
-  trait builderApiCtx extends ctx {
     val notFoundResponse = ResponseBuilder()
-      .withStatus(StatusCodes.NotFound)
-      .build
+    .withStatus(StatusCodes.NotFound)
+    .build
+
   }
 
   def httpRequestFor(path: String): Matcher[HttpRequest] = { (_: HttpRequest).uri.path } ^^ ===(Path(path))
@@ -210,9 +162,9 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
 
 }
 
-object EmbeddedHttpProbeTest {
+object EmbeddedHttpProbeNGTest {
 
-  implicit class RichHttpRequest protected[EmbeddedHttpProbeTest](val request: HttpRequest) extends AnyVal {
+  implicit class RichHttpRequest protected[EmbeddedHttpProbeNGTest](val request: HttpRequest) extends AnyVal {
 
     def withEntity(entity: Option[HttpEntity]) = request.copy(entity = entity.getOrElse(request.entity))
 

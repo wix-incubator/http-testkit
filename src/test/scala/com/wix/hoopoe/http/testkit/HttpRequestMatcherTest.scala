@@ -5,10 +5,7 @@ import org.specs2.specification.Scope
 import spray.http.HttpHeaders.{Host, Location}
 import spray.http._
 
-/**
-  * @author nettad
-  * @since 19/02/2017.
-  */
+
 class HttpRequestMatcherTest extends SpecificationWithJUnit {
 
   "HttpRequestMatcher" should {
