@@ -14,7 +14,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
   "probe using builder api" should {
     "answer with registered path listener" in new ctx {
-      val request = HttpRequestMatcher(HttpMethods.GET).withUri(haveSomePath)
+      val request = aGetRequest.withUri(haveSomePath)
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath) must beNotFound
@@ -22,9 +22,9 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     }
 
     "answer with multiple registered listeners" in new ctx {
-      val request1 = HttpRequestMatcher(HttpMethods.GET).withUri(havePath(Uri.Path("/some1")))
+      val request1 = aGetRequest.withUri(havePath(Uri.Path("/some1")))
       val response1 = notFoundResponse
-      val request2 = HttpRequestMatcher(HttpMethods.GET).withUri(havePath(Uri.Path("/some2")))
+      val request2 = aGetRequest.withUri(havePath(Uri.Path("/some2")))
       val response2 = HttpResponse(status = StatusCodes.BadGateway)
       addListener(given = request1, thenRespond = response1)
       addListener(given = request2, thenRespond = response2)
@@ -36,7 +36,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
     "answer with header listener" in new ctx {
       val header = HttpHeaders.`Accept-Encoding`(Seq(HttpEncodingRange.*))
-      val request = HttpRequestMatcher(HttpMethods.GET).withUri(haveSomePath).withHeader(header)
+      val request = aGetRequest.withUri(haveSomePath).withHeader(header)
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath, header = Some(header)) must beNotFound
@@ -45,9 +45,19 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     }
 
     "answer with entity listener" in new ctx {
-      private val expectedEntity = HttpEntity("my beautiful http entity")
+      val expectedEntity = HttpEntity("my beautiful http entity")
       val entityMatcher = HttpEntityMatcher.beEqualTo(expectedEntity)
-      val request = HttpRequestMatcher(HttpMethods.GET).withUri(haveSomePath).withEntity(entityMatcher)
+      val request = aGetRequest.withUri(haveSomePath).withEntity(entityMatcher)
+      addListener(given = request, thenRespond = notFoundResponse)
+
+      get(somePath, entity = Some(expectedEntity)) must beNotFound
+      get(somePath, entity = Some(HttpEntity("yada yada yada"))) must beSuccessful
+      get(somePath, entity = None) must beSuccessful
+    }
+
+    "answer with entity listener" in new ctx {
+      val expectedEntity = HttpEntity("my beautiful http entity")
+      val request = aGetRequest.withUri(haveSomePath).withEntity(expectedEntity)
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath, entity = Some(expectedEntity)) must beNotFound
@@ -57,7 +67,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
     "answer with protocol listener" in new ctx {
       val protocol = HttpProtocols.`HTTP/1.0`
-      val request = HttpRequestMatcher(HttpMethods.GET).withUri(haveSomePath).withProtocol(protocol)
+      val request = aGetRequest.withUri(haveSomePath).withProtocol(protocol)
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath, protocol = Some(protocol)) must beNotFound
@@ -66,21 +76,21 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     }
 
     "support get with URI" in new ctx {
-      val request = HttpRequestMatcher(HttpMethods.GET).withUri(havePath(Uri("/some")))
+      val request = aGetRequest.withUri(havePath(Uri("/some")))
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath) must beNotFound
     }
 
     "support post" in new ctx {
-      val request = HttpRequestMatcher(HttpMethods.POST).withUri(haveSomePath)
+      val request = aPostRequest.withUri(haveSomePath)
       addListener(given = request, thenRespond = notFoundResponse)
 
       post(somePath) must beNotFound
     }
 
     "support post with URI" in new ctx {
-      val request = HttpRequestMatcher(HttpMethods.POST).withUri(havePath(Uri("/some")))
+      val request = aPostRequest.withUri(havePath(Uri("/some")))
       addListener(given = request, thenRespond = notFoundResponse)
 
       post(somePath) must beNotFound
@@ -109,6 +119,11 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     // execution context for futures
     import system.dispatcher
     private val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
+
+
+    def aPostRequest: HttpRequestMatcher = HttpRequestMatcher(HttpMethods.POST)
+
+    def aGetRequest: HttpRequestMatcher = HttpRequestMatcher(HttpMethods.GET)
 
     def get(path: String,
             header: Option[HttpHeader] = None,

@@ -144,6 +144,8 @@ case class HttpRequestMatcher(method: HttpMethod,
 
   def withEntity(entity: HttpEntityMatcher): HttpRequestMatcher = copy(entity = Some(entity))
 
+  def withEntity(entity: HttpEntity): HttpRequestMatcher = withEntity(HttpEntityMatcher.beEqualTo(entity))
+
   def withProtocol(protocol: HttpProtocol): HttpRequestMatcher = copy(protocol = Some(protocol))
 
   def withUri(uri: UriMatcher) = copy(uri = Some(uri))
