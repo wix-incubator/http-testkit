@@ -35,43 +35,39 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     }
 
     "answer with header listener" in new ctx {
-      val header = HttpHeaders.`Accept-Encoding`(Seq(HttpEncodingRange.*))
-      val request = aGetRequest.withUri(haveSomePath).withHeader(header)
+      val request = aGetRequest.withUri(haveSomePath).withHeader(expectedHeader)
       addListener(given = request, thenRespond = notFoundResponse)
 
-      get(somePath, header = Some(header)) must beNotFound
-      get(somePath, header = Some(HttpHeaders.`Content-Type`(ContentTypes.`text/plain`))) must beSuccessful
+      get(somePath, header = Some(expectedHeader)) must beNotFound
+      get(somePath, header = Some(unexpectedHeader)) must beSuccessful
       get(somePath, header = None) must beSuccessful
     }
 
     "answer with entity listener" in new ctx {
-      val expectedEntity = HttpEntity("my beautiful http entity")
       val entityMatcher = HttpEntityMatcher.beEqualTo(expectedEntity)
       val request = aGetRequest.withUri(haveSomePath).withEntity(entityMatcher)
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath, entity = Some(expectedEntity)) must beNotFound
-      get(somePath, entity = Some(HttpEntity("yada yada yada"))) must beSuccessful
+      get(somePath, entity = Some(unexpectedEntity)) must beSuccessful
       get(somePath, entity = None) must beSuccessful
     }
 
     "answer with entity listener" in new ctx {
-      val expectedEntity = HttpEntity("my beautiful http entity")
       val request = aGetRequest.withUri(haveSomePath).withEntity(expectedEntity)
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath, entity = Some(expectedEntity)) must beNotFound
-      get(somePath, entity = Some(HttpEntity("yada yada yada"))) must beSuccessful
+      get(somePath, entity = Some(unexpectedEntity)) must beSuccessful
       get(somePath, entity = None) must beSuccessful
     }
 
     "answer with protocol listener" in new ctx {
-      val protocol = HttpProtocols.`HTTP/1.0`
-      val request = aGetRequest.withUri(haveSomePath).withProtocol(protocol)
+      val request = aGetRequest.withUri(haveSomePath).withProtocol(expectedProtocol)
       addListener(given = request, thenRespond = notFoundResponse)
 
-      get(somePath, protocol = Some(protocol)) must beNotFound
-      get(somePath, protocol = Some(HttpProtocols.`HTTP/1.1`)) must beSuccessful
+      get(somePath, protocol = Some(expectedProtocol)) must beNotFound
+      get(somePath, protocol = Some(unexpectedProtocol)) must beSuccessful
       get(somePath, protocol = None) must beSuccessful
     }
 
@@ -103,6 +99,14 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     val somePath = "/some"
     val haveSomePath = havePath(Uri.Path(somePath))
 
+    val expectedHeader = HttpHeaders.`Accept-Encoding`(Seq(HttpEncodingRange.*))
+    val unexpectedHeader = HttpHeaders.`Content-Type`(ContentTypes.`text/plain`)
+
+    val expectedEntity = HttpEntity("my beautiful http entity")
+    val unexpectedEntity = HttpEntity("yada yada yada")
+
+    val expectedProtocol = HttpProtocols.`HTTP/1.0`
+    val unexpectedProtocol = HttpProtocols.`HTTP/1.1`
 
     lazy val probe = new EmbeddedHttpProbe
 
@@ -149,9 +153,6 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
       probe.addListener(Listener().given(given).thenRespondWith(thenRespond))
 
     val notFoundResponse = HttpResponse(status = StatusCodes.NotFound)
-
-
-
   }
 
   def haveStatus(status: StatusCode) = be_===(status) ^^ ((_: HttpResponse).status aka "status")
