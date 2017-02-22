@@ -31,11 +31,6 @@ class EmbeddedHttpProbe(port: Int = 0, defaultHandler: Handler = OKHandler) { pr
     case httpRequest: HttpRequest if listener.request.matches(httpRequest) => listener.response
   }
 
-  // Builder for HttpRequest with matchers
-  // Builder for HttpResponse with matchers
-  // make handlers private
-  // encapsulate PartialFunction creation
-
   var actualPort: Int = _
 
   private val lifecycle = system.actorOf(Props(new LifecycleActor))
@@ -149,6 +144,8 @@ case class HttpRequestMatcher(method: HttpMethod,
   def withProtocol(protocol: HttpProtocol): HttpRequestMatcher = copy(protocol = Some(protocol))
 
   def withUri(uri: UriMatcher) = copy(uri = Some(uri))
+
+  def withUri(uri: Uri) = copy(uri = Some(UriMatcher.havePath(uri)))
 
 }
 

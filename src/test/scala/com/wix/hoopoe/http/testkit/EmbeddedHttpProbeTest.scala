@@ -1,16 +1,14 @@
 package com.wix.hoopoe.http.testkit
 
-import akka.actor.ActorSystem
 import org.specs2.matcher.Matcher
-import org.specs2.mutable.{BeforeAfter, SpecificationWithJUnit}
-import org.specs2.specification.Scope
+import org.specs2.mutable.SpecificationWithJUnit
 import spray.can.Http.ConnectionException
 import spray.client.pipelining._
 import spray.http.Uri._
 import spray.http._
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 
 class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
@@ -46,23 +44,7 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
 
   }
 
-  trait ctx extends Scope with BeforeAfter {
-    lazy val probe = new EmbeddedHttpProbe
-
-    override def before: Unit = {
-      probe.doStart()
-    }
-
-    override def after: Unit = {
-      probe.doStop()
-    }
-
-    implicit val system = ActorSystem("client")
-
-    // execution context for futures
-    import system.dispatcher
-    private val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-
+  trait ctx extends BaseCtx {
     def get(path: String) = {
 
       val request: HttpRequest = Get(s"http://localhost:${probe.actualPort}$path")
@@ -77,9 +59,4 @@ class EmbeddedHttpProbeTest extends SpecificationWithJUnit {
   }
 
   def httpRequestFor(path: String): Matcher[HttpRequest] = { (_: HttpRequest).uri.path } ^^ ===(Path(path))
-
-  private def haveStatus(status: StatusCode) = be_===(status) ^^ ((_: HttpResponse).status aka "status")
-  def beSuccessful = haveStatus(StatusCodes.OK)
-  def beNotFound = haveStatus(StatusCodes.NotFound)
-
 }

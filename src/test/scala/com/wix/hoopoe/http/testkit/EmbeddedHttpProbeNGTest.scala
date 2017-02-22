@@ -1,20 +1,26 @@
 package com.wix.hoopoe.http.testkit
 
-import akka.actor.ActorSystem
-import org.specs2.mutable.{BeforeAfter, SpecificationWithJUnit}
-import org.specs2.specification.Scope
-import spray.client.pipelining.{Get, Post, sendReceive}
+import com.wix.hoopoe.http.testkit.UriMatcher._
+import org.specs2.mutable.SpecificationWithJUnit
+import spray.client.pipelining.{Get, Post}
 import spray.http._
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import UriMatcher._
 
 class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
   "probe using builder api" should {
-    "answer with registered path listener" in new ctx {
+    "answer with path matcher listener" in new ctx {
       val request = aGetRequest.withUri(haveSomePath)
+      addListener(given = request, thenRespond = notFoundResponse)
+
+      get(somePath) must beNotFound
+      get("/some1") must beSuccessful
+    }
+
+    "answer with path listener" in new ctx {
+      val request = aGetRequest.withUri(Uri(somePath))
       addListener(given = request, thenRespond = notFoundResponse)
 
       get(somePath) must beNotFound
@@ -43,7 +49,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
       get(somePath, header = None) must beSuccessful
     }
 
-    "answer with entity listener" in new ctx {
+    "answer with entity matcher listener" in new ctx {
       val entityMatcher = HttpEntityMatcher.beEqualTo(expectedEntity)
       val request = aGetRequest.withUri(haveSomePath).withEntity(entityMatcher)
       addListener(given = request, thenRespond = notFoundResponse)
@@ -94,7 +100,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
   }
 
-  trait ctx extends Scope with BeforeAfter {
+  trait ctx extends BaseCtx {
     import EmbeddedHttpProbeNGTest._
     val somePath = "/some"
     val haveSomePath = havePath(Uri.Path(somePath))
@@ -108,22 +114,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
     val expectedProtocol = HttpProtocols.`HTTP/1.0`
     val unexpectedProtocol = HttpProtocols.`HTTP/1.1`
 
-    lazy val probe = new EmbeddedHttpProbe
-
-    override def before: Unit = {
-      probe.doStart()
-    }
-
-    override def after: Unit = {
-      probe.doStop()
-    }
-
-    implicit val system = ActorSystem("client")
-
-    // execution context for futures
-    import system.dispatcher
-    private val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-
+    val notFoundResponse = HttpResponse(status = StatusCodes.NotFound)
 
     def aPostRequest: HttpRequestMatcher = HttpRequestMatcher(HttpMethods.POST)
 
@@ -151,14 +142,7 @@ class EmbeddedHttpProbeNGTest extends SpecificationWithJUnit {
 
     def addListener(given: HttpRequestMatcher, thenRespond: HttpResponse) =
       probe.addListener(Listener().given(given).thenRespondWith(thenRespond))
-
-    val notFoundResponse = HttpResponse(status = StatusCodes.NotFound)
   }
-
-  def haveStatus(status: StatusCode) = be_===(status) ^^ ((_: HttpResponse).status aka "status")
-  def beSuccessful = haveStatus(StatusCodes.OK)
-  def beNotFound = haveStatus(StatusCodes.NotFound)
-
 }
 
 object EmbeddedHttpProbeNGTest {
