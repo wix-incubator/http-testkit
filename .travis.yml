@@ -1,7 +1,0 @@
-language: java
-before_install:
-    - export TZ=UTC
-script: mvn clean verify
-notifications:
-  email:
-    - nadavwe@wix.com
